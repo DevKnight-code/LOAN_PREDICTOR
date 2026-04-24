@@ -1,0 +1,18 @@
+{
+  "model_type": "Random Forest",
+  "model_flag": "rf",
+  "features": [
+    "Age",
+    "Income",
+    "Loan_Amount",
+    "Credit_Score",
+    "Employment_Years",
+    "Education_Level",
+    "Housing_Status_Own",
+    "Housing_Status_Rent"
+  ],
+  "accuracy": 0.845,
+  "roc_auc": 0.5245,
+  "n_estimators": 500,
+  "max_depth": 12
+}

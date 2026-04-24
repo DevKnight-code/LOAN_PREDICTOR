@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CreditSense — Loan Default Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:        #0d0d14;
+      --ink-2:      #1e1e2c;
+      --mist:       #f5f4f0;
+      --mist-2:     #eeece6;
+      --mist-3:     #e3e0d8;
+      --slate:      #6b6b7e;
+      --slate-2:    #9898aa;
+      --azure:      #2563eb;
+      --azure-lo:   rgba(37,99,235,0.10);
+      --rose:       #e11d48;
+      --rose-lo:    rgba(225,29,72,0.09);
+      --emerald:    #059669;
+      --emerald-lo: rgba(5,150,105,0.09);
+      --amber:      #d97706;
+      --amber-lo:   rgba(217,119,6,0.10);
+      --radius-sm:  8px;
+      --radius-md:  12px;
+      --radius-lg:  18px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink:        #f0efe9;
+        --ink-2:      #d4d3cb;
+        --mist:       #10101a;
+        --mist-2:     #17172100;
+        --mist-3:     #1e1e2c;
+        --slate:      #7878900;
+        --slate-2:    #5a5a6e;
+        --azure-lo:   rgba(59,130,246,0.12);
+        --rose-lo:    rgba(244,63,94,0.10);
+        --emerald-lo: rgba(16,185,129,0.10);
+        --amber-lo:   rgba(245,158,11,0.10);
+      }
+    }
+
+    body {
+      background: var(--mist);
+      color: var(--ink);
+      font-family: 'Geist', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0 36px;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 15px; font-weight: 600;
+      color: var(--ink); text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 34px; height: 34px;
+      background: var(--azure);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .brand-mark svg { width: 17px; height: 17px; fill: #fff; }
+
+    .nav-pill {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      background: var(--mist-2);
+      color: var(--slate);
+      border: 1px solid var(--mist-3);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .dot-live {
+      width: 6px; height: 6px;
+      background: var(--emerald);
+      border-radius: 50%;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity:1; } 50% { opacity:0.3; }
+    }
+
+    /* HERO */
+    .hero { padding: 8px 0 44px; }
+
+    .hero-tag {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--azure);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(38px, 5vw, 62px);
+      font-weight: 400;
+      line-height: 1.07;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 i { font-style: italic; color: var(--azure); }
+
+    .hero p {
+      font-size: 15px;
+      color: var(--slate);
+      max-width: 480px;
+      line-height: 1.75;
+    }
+
+    /* METRICS STRIP */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 44px;
+    }
+
+    .m-tile {
+      background: white;
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .m-tile { background: #17172100; }
+    }
+
+    .m-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 5px;
+    }
+
+    .m-val {
+      font-family: 'Instrument Serif', serif;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    .m-val.blue    { color: var(--azure); }
+    .m-val.green   { color: var(--emerald); }
+    .m-val.amber   { color: var(--amber); }
+
+    /* LAYOUT */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 370px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* CARD */
+    .card {
+      background: white;
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .card { background: #17172100; }
+    }
+
+    .c-head {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--slate);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+      border-bottom: 1px solid var(--mist-3);
+    }
+
+    /* FORM GRID */
+    .fgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .fg { display: flex; flex-direction: column; gap: 6px; }
+    .fg.s2 { grid-column: 1/-1; }
+
+    .fg > label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--slate);
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      height: 40px;
+      padding: 0 12px;
+      background: var(--mist);
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font-family: 'Geist', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--azure);
+      box-shadow: 0 0 0 3px var(--azure-lo);
+    }
+
+    input[type="number"]::placeholder { color: var(--slate-2); }
+
+    /* Range slider */
+    .slider-head { display: flex; justify-content: space-between; align-items: center; }
+
+    .sv {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: var(--azure);
+      font-weight: 500;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--mist-3);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      margin-top: 8px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--azure);
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--azure);
+      border: 2px solid white;
+    }
+
+    .score-bands {
+      display: flex;
+      height: 3px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 5px;
+      gap: 2px;
+    }
+
+    /* Segmented control */
+    .seg {
+      display: flex;
+      background: var(--mist);
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .seg input[type="radio"] { display: none; }
+
+    .seg .so {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 4px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--slate);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .seg input[type="radio"]:checked + .so {
+      background: var(--azure);
+      color: white;
+    }
+
+    /* Submit */
+    .btn {
+      width: 100%;
+      height: 44px;
+      margin-top: 22px;
+      background: var(--azure);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Geist', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn:hover  { opacity: 0.88; }
+    .btn:active { transform: scale(0.99); }
+    .btn svg    { width: 16px; height: 16px; fill: none; stroke: white; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* RIGHT COL */
+    .rcol { display: flex; flex-direction: column; gap: 16px; }
+
+    /* VERDICT */
+    .verdict {
+      background: white;
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-lg);
+      padding: 26px 26px 22px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .verdict { background: #17172100; }
+    }
+
+    .verdict.def {
+      background: var(--rose-lo);
+      border-color: rgba(225,29,72,0.18);
+    }
+
+    .verdict.ok {
+      background: var(--emerald-lo);
+      border-color: rgba(5,150,105,0.18);
+    }
+
+    .v-eye {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 18px;
+    }
+
+    /* donut */
+    .donut-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .donut-row svg { flex-shrink: 0; }
+
+    .v-status {
+      font-family: 'Instrument Serif', serif;
+      font-size: 21px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .verdict.def .v-status { color: var(--rose); }
+    .verdict.ok  .v-status { color: var(--emerald); }
+
+    .v-sub {
+      font-size: 12px;
+      color: var(--slate);
+      font-family: 'Geist Mono', monospace;
+      margin-bottom: 10px;
+    }
+
+    .risk-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .risk-pill::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .r-low  { background: var(--emerald-lo); color: var(--emerald); }
+    .r-mod  { background: var(--amber-lo);   color: var(--amber); }
+    .r-high { background: var(--rose-lo);    color: var(--rose); }
+
+    .hr { height: 1px; background: var(--mist-3); margin: 18px 0; }
+
+    .v-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .vg-cell {
+      background: var(--mist);
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+
+    .verdict.def .vg-cell,
+    .verdict.ok  .vg-cell { background: rgba(255,255,255,0.5); }
+
+    .vg-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 2px;
+    }
+
+    .vg-val {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+    }
+
+    /* SUMMARY CARD */
+    .summ {
+      background: white;
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .summ { background: #17172100; }
+    }
+
+    .s-head {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 14px;
+    }
+
+    .s-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--mist-3);
+    }
+
+    .s-row:last-child { border-bottom: none; }
+    .s-key { font-size: 12px; color: var(--slate); min-width: 72px; }
+    .s-bar { flex: 1; height: 3px; background: var(--mist-3); border-radius: 2px; overflow: hidden; }
+    .s-bar-f { height: 100%; background: var(--azure); border-radius: 2px; }
+    .s-val { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink); min-width: 64px; text-align: right; }
+
+    /* EMPTY */
+    .empty {
+      background: white;
+      border: 1px dashed var(--mist-3);
+      border-radius: var(--radius-lg);
+      padding: 44px 24px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; gap: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .empty { background: #17172100; }
+    }
+
+    .e-icon {
+      width: 48px; height: 48px;
+      background: var(--azure-lo);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .e-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--azure); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .empty h3 { font-size: 15px; font-weight: 500; }
+    .empty p  { font-size: 13px; color: var(--slate); max-width: 200px; line-height: 1.6; }
+
+    .how-card {
+      background: white;
+      border: 1px solid var(--mist-3);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .how-card { background: #17172100; }
+    }
+
+    .step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--mist-3);
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .sn {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--azure-lo);
+      color: var(--azure);
+      font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    .st { font-size: 13px; color: var(--slate); line-height: 1.55; }
+    .st strong { color: var(--ink); font-weight: 500; }
+
+    /* FOOTER */
+    footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--mist-3);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: var(--slate-2);
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(10px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .fu { animation: fadeUp 0.4s ease both; }
+    .fu1 { animation-delay: 0.05s; }
+    .fu2 { animation-delay: 0.1s; }
+    .fu3 { animation-delay: 0.15s; }
+
+    @keyframes arcIn {
+      from { stroke-dashoffset: 220; }
+      to   { stroke-dashoffset: var(--de); }
+    }
+
+    .arc { animation: arcIn 0.9s cubic-bezier(.4,0,.2,1) both; }
+
+    /* RESPONSIVE */
+    @media (max-width: 860px) {
+      .layout  { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .fgrid { grid-template-columns: 1fr; }
+      .fg.s2 { grid-column: 1; }
+      footer { flex-direction: column; gap: 4px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="fu">
+    <a class="brand" href="/">
+      <div class="brand-mark">
+        <svg viewBox="0 0 20 20"><path d="M10 2 2 7v6l8 5 8-5V7L10 2zm0 2.24L16 8l-6 3.75L4 8l6-3.76zM3 9.27l6 3.75v5L3 14.27V9.27zm8 8.75v-5l6-3.75v5l-6 3.75z"/></svg>
+      </div>
+      CreditSense
+    </a>
+    <div class="nav-pill">
+      <span class="dot-live"></span>
+      Random Forest &nbsp;·&nbsp; {% if model_meta %}{{ model_meta.n_estimators }}{% else %}500{% endif %} trees
+    </div>
+  </nav>
+
+  <section class="hero fu fu1">
+    <p class="hero-tag">AI Credit Risk Engine</p>
+    <h1>Predict loan<br><i>default risk</i><br>instantly</h1>
+    <p>Enter applicant financials for a real-time creditworthiness assessment powered by a Random Forest ensemble trained on 1,000 credit profiles.</p>
+  </section>
+
+  <div class="metrics fu fu2">
+    <div class="m-tile">
+      <div class="m-label">Algorithm</div>
+      <div class="m-val blue">RF</div>
+    </div>
+    <div class="m-tile">
+      <div class="m-label">Test Accuracy</div>
+      <div class="m-val green">{% if model_meta %}{{ (model_meta.accuracy * 100)|round(1) }}%{% else %}—{% endif %}</div>
+    </div>
+    <div class="m-tile">
+      <div class="m-label">ROC-AUC</div>
+      <div class="m-val amber">{% if model_meta %}{{ model_meta.roc_auc }}{% else %}—{% endif %}</div>
+    </div>
+    <div class="m-tile">
+      <div class="m-label">Features</div>
+      <div class="m-val">7</div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- FORM -->
+    <div class="card fu fu3">
+      <div class="c-head">Applicant Profile</div>
+      <form method="POST" action="/predict">
+        <div class="fgrid">
+
+          <div class="fg">
+            <label>Age (years)</label>
+            <input type="number" name="age" placeholder="e.g. 35" min="18" max="100"
+              value="{{ form_data.age if form_data else '' }}" required>
+          </div>
+
+          <div class="fg">
+            <label>Employment years</label>
+            <input type="number" name="employment_years" placeholder="e.g. 5" min="0" max="50"
+              value="{{ form_data.employment_years if form_data else '' }}" required>
+          </div>
+
+          <div class="fg">
+            <label>Annual income ($)</label>
+            <input type="number" name="income" placeholder="e.g. 60000" min="0" step="1000"
+              value="{{ form_data.income if form_data else '' }}" required>
+          </div>
+
+          <div class="fg">
+            <label>Loan amount ($)</label>
+            <input type="number" name="loan_amount" placeholder="e.g. 25000" min="0" step="500"
+              value="{{ form_data.loan_amount if form_data else '' }}" required>
+          </div>
+
+          <!-- Credit score slider -->
+          <div class="fg s2">
+            <div class="slider-head">
+              <label>Credit Score (300–850)</label>
+              <span class="sv" id="csOut">{{ form_data.credit_score if form_data else '650' }}</span>
+            </div>
+            <input type="range" id="csSlider" name="credit_score"
+              min="300" max="850" step="1"
+              value="{{ form_data.credit_score if form_data else '650' }}"
+              oninput="csOut.textContent=this.value; renderBands(+this.value)">
+            <div class="score-bands" id="scoreBands"></div>
+          </div>
+
+          <!-- Education -->
+          <div class="fg s2">
+            <label>Education level</label>
+            <div class="seg">
+              {% set ed = form_data.education_level if form_data else 'Bachelors' %}
+              <input type="radio" name="education_level" id="e0" value="High School" {{ 'checked' if ed=='High School' }}>
+              <label for="e0" class="so">High School</label>
+              <input type="radio" name="education_level" id="e1" value="Bachelors" {{ 'checked' if ed=='Bachelors' or not form_data }}>
+              <label for="e1" class="so">Bachelors</label>
+              <input type="radio" name="education_level" id="e2" value="Masters" {{ 'checked' if ed=='Masters' }}>
+              <label for="e2" class="so">Masters</label>
+              <input type="radio" name="education_level" id="e3" value="PhD" {{ 'checked' if ed=='PhD' }}>
+              <label for="e3" class="so">PhD</label>
+            </div>
+          </div>
+
+          <!-- Housing -->
+          <div class="fg s2">
+            <label>Housing status</label>
+            <div class="seg" style="width: 75%;">
+              {% set hs = form_data.housing_status if form_data else 'Mortgage' %}
+              <input type="radio" name="housing_status" id="h0" value="Mortgage" {{ 'checked' if hs=='Mortgage' or not form_data }}>
+              <label for="h0" class="so">Mortgage</label>
+              <input type="radio" name="housing_status" id="h1" value="Own" {{ 'checked' if hs=='Own' }}>
+              <label for="h1" class="so">Own</label>
+              <input type="radio" name="housing_status" id="h2" value="Rent" {{ 'checked' if hs=='Rent' }}>
+              <label for="h2" class="so">Rent</label>
+            </div>
+          </div>
+
+        </div>
+
+        <button type="submit" class="btn">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          Run Risk Analysis
+        </button>
+      </form>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="rcol">
+
+      {% if result %}
+        {% set isd = result.is_defaulter %}
+        {% set prob = result.default_prob %}
+
+        <!-- VERDICT -->
+        {% set circ = 220 %}
+        {% set filled = (prob / 100) * circ %}
+        {% set offset = circ - filled %}
+        {% set clr = '#e11d48' if isd else '#059669' %}
+
+        <div class="verdict {{ 'def' if isd else 'ok' }} fu">
+          <div class="v-eye">Assessment Result</div>
+          <div class="donut-row">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="35" fill="none" stroke="var(--mist-3)" stroke-width="8"/>
+              <circle cx="45" cy="45" r="35" fill="none"
+                stroke="{{ clr }}" stroke-width="8"
+                stroke-linecap="round"
+                stroke-dasharray="{{ circ }}"
+                stroke-dashoffset="{{ offset }}"
+                transform="rotate(-90 45 45)"
+                class="arc" style="--de: {{ offset }};"
+              />
+              <text x="45" y="41" text-anchor="middle"
+                font-family="'Instrument Serif',serif" font-size="16"
+                fill="{{ clr }}">{{ prob }}%</text>
+              <text x="45" y="56" text-anchor="middle"
+                font-family="'Geist Mono',monospace" font-size="7.5"
+                fill="var(--slate)">DEFAULT</text>
+            </svg>
+            <div>
+              <div class="v-status">{{ result.label }}</div>
+              <div class="v-sub">Safe: {{ result.safe_prob }}%</div>
+              {% if result.risk_level == 'Low' %}
+                <span class="risk-pill r-low">Low Risk</span>
+              {% elif result.risk_level == 'Moderate' %}
+                <span class="risk-pill r-mod">Moderate Risk</span>
+              {% else %}
+                <span class="risk-pill r-high">{{ result.risk_level }} Risk</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="v-grid">
+            <div class="vg-cell">
+              <div class="vg-label">Default Prob.</div>
+              <div class="vg-val" style="color: var(--rose);">{{ result.default_prob }}%</div>
+            </div>
+            <div class="vg-cell">
+              <div class="vg-label">Debt-to-Income</div>
+              <div class="vg-val"
+                style="color: {% if result.dti > 80 %}var(--rose){% elif result.dti > 40 %}var(--amber){% else %}var(--emerald){% endif %};">
+                {{ result.dti }}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if form_data %}
+        <!-- SUMMARY -->
+        <div class="summ fu">
+          <div class="s-head">Input Summary</div>
+          <div class="s-row">
+            <span class="s-key">Age</span>
+            <div class="s-bar"><div class="s-bar-f" style="width:{{ [(form_data.age|float/80*100)|round, 100]|min }}%"></div></div>
+            <span class="s-val">{{ form_data.age|int }} yrs</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Income</span>
+            <div class="s-bar"><div class="s-bar-f" style="width:{{ [(form_data.income|float/200000*100)|round, 100]|min }}%"></div></div>
+            <span class="s-val">${{ '{:,.0f}'.format(form_data.income|float) }}</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Loan</span>
+            <div class="s-bar"><div class="s-bar-f" style="width:{{ [(form_data.loan_amount|float/100000*100)|round, 100]|min }}%"></div></div>
+            <span class="s-val">${{ '{:,.0f}'.format(form_data.loan_amount|float) }}</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Credit</span>
+            <div class="s-bar"><div class="s-bar-f" style="width:{{ [((form_data.credit_score|float-300)/550*100)|round, 100]|min }}%"></div></div>
+            <span class="s-val">{{ form_data.credit_score|int }}</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Employment</span>
+            <div class="s-bar"><div class="s-bar-f" style="width:{{ [(form_data.employment_years|float/40*100)|round, 100]|min }}%"></div></div>
+            <span class="s-val">{{ form_data.employment_years|int }} yrs</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Education</span>
+            <span class="s-val">{{ form_data.education_level }}</span>
+          </div>
+          <div class="s-row">
+            <span class="s-key">Housing</span>
+            <span class="s-val">{{ form_data.housing_status }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+      {% else %}
+
+        <div class="empty fu">
+          <div class="e-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/></svg>
+          </div>
+          <h3>No analysis yet</h3>
+          <p>Fill in the form and click Run Risk Analysis.</p>
+        </div>
+
+        <div class="how-card fu">
+          <div class="s-head">How it works</div>
+          <div class="step">
+            <div class="sn">1</div>
+            <div class="st"><strong>Fill the form</strong> with the applicant's financial profile.</div>
+          </div>
+          <div class="step">
+            <div class="sn">2</div>
+            <div class="st"><strong>Random Forest</strong> scores risk across 500 decision trees.</div>
+          </div>
+          <div class="step">
+            <div class="sn">3</div>
+            <div class="st"><strong>Instant verdict</strong> with probability, risk tier &amp; DTI.</div>
+          </div>
+        </div>
+
+      {% endif %}
+    </div>
+  </div>
+
+  <footer>
+    <span>CreditSense v2.0 — Random Forest</span>
+    <span>Research only · Not financial advice</span>
+  </footer>
+</div>
+
+<script>
+function renderBands(v) {
+  const bands = [
+    { max: 579, color: '#e11d48' },
+    { max: 669, color: '#d97706' },
+    { max: 739, color: '#2563eb' },
+    { max: 850, color: '#059669' },
+  ];
+  const el = document.getElementById('scoreBands');
+  el.innerHTML = '';
+  let remaining = 550;
+  bands.forEach((b, i) => {
+    const start = i === 0 ? 300 : bands[i-1].max + 1;
+    const end = b.max;
+    const total = end - start + 1;
+    const active = v >= start;
+    const filled = active ? Math.min(v, end) - start + 1 : 0;
+    const span = document.createElement('span');
+    span.style.cssText = `flex:${total}; border-radius:0; background: linear-gradient(to right, ${b.color} ${(filled/total*100).toFixed(1)}%, var(--mist-3) ${(filled/total*100).toFixed(1)}%)`;
+    el.appendChild(span);
+  });
+}
+
+renderBands(parseInt(document.getElementById('csSlider').value));
+</script>
+</body>
+</html>
